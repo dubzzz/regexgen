@@ -1,4 +1,5 @@
 const assert = require('assert');
+const fc = require('fast-check');
 const regexgen = require('../');
 
 describe('regexgen', function () {
@@ -134,5 +135,24 @@ describe('regexgen', function () {
 
     assert.deepEqual(s.match(r)[0], s);
     assert.deepEqual(r, /a(?:(?:bcd|gh|y)z|bcd|ef)/);
+  });
+
+  it('should always build a regex matching all the passed strings', function () {
+    fc.assert(
+      fc.property(
+        fc.array(fc.fullUnicodeString({minLength: 1}), {minLength: 1}),
+        fc.fullUnicodeString(),
+        fc.fullUnicodeString(),
+        function (inputs, prefix, suffix) {
+          const reg = regexgen(inputs);
+          for (const input of inputs) {
+            assert.match(prefix + input + suffix, reg);
+          }
+        }
+      ),
+      // Default time limit for `it` is 2000ms
+      // We want to prevent the test to timeout in case of shrink
+      { interruptAfterTimeLimit: 1500, markInterruptAsFailure: true }
+    );
   });
 });
